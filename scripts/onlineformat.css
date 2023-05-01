@@ -1,0 +1,41 @@
+/*      Online format -- Version 1.1
+Last edit:  2023/01/22
+Author(s):  Geysen, Steven (SG)
+Notes:      - Format script of 'Clothes_photo.html'
+            - Online reaction time task for VIAS
+            - Release notes:
+                * Tried more
+To do:      - Image formatting
+            - Feedback
+Comments:   
+Sources:    
+*/
+
+
+/* Default settings */
+body {
+    font-family: Verdana;
+    font-size: 26px;
+    color: white;
+    background-color: #616267;
+    overflow: hidden;
+}
+
+p {
+    margin: auto;
+    width: 80%;
+    line-height: 35px;
+}
+
+.imgbox{
+    display: grid;
+    height: 100%;
+}
+
+.jspych-content {
+    overflow: hidden;
+}
+
+.jspych-content-wrapper {
+    overflow: hidden;
+}

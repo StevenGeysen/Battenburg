@@ -1,0 +1,454 @@
+<!--    Clothes: Photo -- Version 7.1.1
+Last edit:  2023/03/13
+Author:     Geysen, Steven (SG)
+Notes:      - Foto experiment (Opvallendheid)
+            - Online reaction time task for VIAS
+            - Release notes:
+                * Fix NaN in output
+Comments:   SG: Before running the experiment, make sure that all the stimuli
+                have the most recent names. For this, run the filename_man.py
+                script and copy the contents of the .txt files to the correct
+                lists in this script.
+Sources:    Basic structure ( https://www.jspsych.org/7.3/tutorials/rt-task/ )
+            https://www.jspsych.org/7.0/overview/timeline/
+            List of file content ( https://stackoverflow.com/a/31274417 )
+            Preloading ( https://www.jspsych.org/7.3/overview/media-preloading/ )
+            Shuffle list ( https://stackoverflow.com/a/12646864 )
+            https://mailtrap.io/blog/javascript-send-email/
+            https://pll.harvard.edu/course/cs50s-web-programming-python-and-javascript?delta=0
+            Numpy.linspace ( https://stackoverflow.com/a/40475362 )
+            https://gitlab.pavlovia.org/tgro/2020_ab/blob/master/experiment.js
+            Window size ( https://stackoverflow.com/a/28241682 )
+            https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
+-->
+
+
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Herkenbaarheid Belgische Politie</title>
+        <!--Import jspsych-->
+        <script src="../jspsych/jspsych.js"></script>
+        <!--Import keyboard response plugin-->
+        <script src="../jspsych/plugin-html-keyboard-response.js"></script>
+        <script src="../jspsych/plugin-image-keyboard-response.js"></script>
+        <!--Preload stimuli to avoid lag-->
+        <script src="../jspsych/plugin-preload.js"></script>
+        <!--Import jsPsych style sheet-->
+        <link href="../jspsych/jspsych.css" rel="stylesheet" type="text/css"/>
+        <!--Set background and text colour-->
+        <link rel="stylesheet" href="onlineformat.css"/>
+    </head>
+    <script>
+        // Settings
+        //// Response mapping
+        const POL_RESP = 'enter';
+        //// Durations (in ms)
+        const TRIAL_DUR = 3000;
+        const FB_DUR = 1000;
+        //// Accuracy and expected response
+        var accuracy = -999;
+        var expResp = -999;
+
+        // Functions you would expect to be included
+        //// random.shuffle
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        };
+        //// numpy.linspace
+        function nplinspace(startValue, stopValue, cardinality) {
+            var arr = [];
+            var step = (stopValue - startValue) / (cardinality - 1);
+            for (var i = 0; i < cardinality; i++) {
+                arr.push(startValue + (step * i));
+            }
+            return arr;
+        };
+
+        // Initialize jsPsych
+        const jsPsych = initJsPsych(
+            {
+                override_safe_mode: true,
+                use_webaudio: false,
+                overflow: 'hidden',
+                // Save data
+                on_finish: function(data){
+                    //// Here you can pass it to the parent
+                    parent.postMessage(
+                        JSON.stringify(jsPsych.data.get()),
+                        '*'
+                    );
+                }
+            }
+        );
+
+        // Create timeline
+        var timeline = [];
+
+        // Participant data
+        //// Generate a random subject ID with 15 characters
+        var subject_id = jsPsych.randomization.randomID(15);
+        jsPsych.data.addProperties({Subject: subject_id});
+
+
+        // Images
+        const INST_DIR = '../stimuli/instructions_feedback/';
+        const PRAC_DIR = '../stimuli/clothes_prac/';
+        const STIM_DIR = '../stimuli/clothes_task/';
+        //// Fixed photo practice
+        ////SG: Double check that final stimulus does not end on a ','.
+        var photo_pracList = [
+            PRAC_DIR + '01_Pedestrian_None_Lang_Niet_Voor_ZwaaiWel_Sted_Afsluiten_Dag.JPG',
+            PRAC_DIR + '02_Pedestrian_None_Kogel_Niet_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            PRAC_DIR + '03_Pedestrian_Orange_Kogel_Wel_Voor_ZwaaiWel_Sted_Afsluiten_Dag.JPG',
+            PRAC_DIR + '04_Car_None_Lang_Niet_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            PRAC_DIR + '05_Car_Blue_Lang_Wel_Voor_ZwaaiWel_Rur_Afsluiten_Dag.JPG',
+            PRAC_DIR + '06_Car_Yellow_Lang_Wel_Achter_ZwaaiWel_Rur_Beveiligen_Nacht.JPG'
+        ];
+        //// Task stimuli
+        var stimuList = [
+            STIM_DIR + '10_Pedestrian_Blue_Lang_Wel_Voor_ZwaaiWel_Sted_Afsluiten_Dag.JPG',
+            STIM_DIR + '11_Pedestrian_None_Lang_Niet_Voor_ZwaaiWel_Sted_Afsluiten_Dag.JPG',
+            STIM_DIR + '12_Pedestrian_Yellow_Lang_Wel_Voor_ZwaaiWel_Sted_Afsluiten_Nacht.JPG',
+            STIM_DIR + '13_Pedestrian_Orange_Lang_Wel_Voor_ZwaaiWel_Sted_Afsluiten_Nacht.JPG',
+            STIM_DIR + '14_Pedestrian_Blue_Lang_Wel_Voor_ZwaaiWel_Sted_Afsluiten_Nacht.JPG',
+            STIM_DIR + '15_Pedestrian_Yellow_Kogel_Weinig_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '16_Pedestrian_Orange_Kogel_Wel_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '17_Pedestrian_Blue_Kogel_Niet_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '18_Pedestrian_None_Kogel_Niet_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '19_Pedestrian_Yellow_Kogel_Weinig_Achter_ZwaaiNiet_Sted_Beveiligen_Nacht.JPG',
+            STIM_DIR + '1_Pedestrian_Yellow_Kogel_Weinig_Voor_ZwaaiWel_Sted_Afsluiten_Dag.JPG',
+            STIM_DIR + '20_Pedestrian_Orange_Kogel_Wel_Achter_ZwaaiNiet_Sted_Beveiligen_Nacht.JPG',
+            STIM_DIR + '21_Pedestrian_Blue_Kogel_Niet_Achter_ZwaaiNiet_Sted_Beveiligen_Nacht.JPG',
+            STIM_DIR + '22_Pedestrian_Yellow_Lang_Wel_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '23_Pedestrian_Orange_Lang_Wel_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '24_Pedestrian_Blue_Lang_Wel_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '25_Pedestrian_None_Lang_Niet_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '26_Pedestrian_Yellow_Lang_Wel_Achter_ZwaaiNiet_Sted_Beveiligen_Nacht.JPG',
+            STIM_DIR + '27_Pedestrian_Orange_Lang_Wel_Achter_ZwaaiNiet_Sted_Beveiligen_Nacht.JPG',
+            STIM_DIR + '28_Pedestrian_Blue_Lang_Wel_Achter_ZwaaiNiet_Sted_Beveiligen_Nacht.JPG',
+            STIM_DIR + '29_Car_Yellow_Kogel_Weinig_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '2_Pedestrian_Orange_Kogel_Wel_Voor_ZwaaiWel_Sted_Afsluiten_Dag.JPG',
+            STIM_DIR + '30_Car_Orange_Kogel_Wel_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '31_Car_Blue_Kogel_Niet_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '32_Car_Yellow_Kogel_Weinig_Achter_ZwaaiNiet_Sted_Beveiligen_Nacht.JPG',
+            STIM_DIR + '33_Car_Orange_Kogel_Wel_Achter_ZwaaiNiet_Sted_Beveiligen_Nacht.JPG',
+            STIM_DIR + '34_Car_Blue_Kogel_Niet_Achter_ZwaaiNiet_Sted_Beveiligen_Nacht.JPG',
+            STIM_DIR + '35_Car_Yellow_Lang_Wel_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '36_Car_Orange_Lang_Wel_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '37_Car_Blue_Lang_Wel_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '38_Car_None_Lang_Niet_Achter_ZwaaiWel_Sted_Beveiligen_Dag.JPG',
+            STIM_DIR + '39_Car_Yellow_Lang_Wel_Achter_ZwaaiNiet_Sted_Beveiligen_Nacht.JPG',
+            STIM_DIR + '3_Pedestrian_Blue_Kogel_Niet_Voor_ZwaaiWel_Sted_Afsluiten_Dag.JPG',
+            STIM_DIR + '40_Car_Orange_Lang_Wel_Achter_ZwaaiNiet_Sted_Beveiligen_Nacht.JPG',
+            STIM_DIR + '41_Car_Blue_Lang_Wel_Achter_ZwaaiNiet_Sted_Beveiligen_Nacht.JPG',
+            STIM_DIR + '42_Car_Yellow_Kogel_Weinig_Voor_ZwaaiWel_Sted_Afsluiten_Dag.JPG',
+            STIM_DIR + '43_Car_Orange_Kogel_Wel_Voor_ZwaaiWel_Sted_Afsluiten_Dag.JPG',
+            STIM_DIR + '44_Car_Blue_Kogel_Niet_Voor_ZwaaiWel_Sted_Afsluiten_Dag.JPG',
+            STIM_DIR + '45_Car_Yellow_Kogel_Weinig_Voor_ZwaaiNiet_Sted_Afsluiten_Nacht.JPG',
+            STIM_DIR + '46_Car_Orange_Kogel_Wel_Voor_ZwaaiNiet_Sted_Afsluiten_Nacht.JPG',
+            STIM_DIR + '47_Car_Blue_Kogel_Niet_Voor_ZwaaiNiet_Sted_Afsluiten_Nacht.JPG',
+            STIM_DIR + '48_Car_Yellow_Lang_Wel_Voor_ZwaaiWel_Rur_Afsluiten_Dag.JPG',
+            STIM_DIR + '49_Car_Orange_Lang_Wel_Voor_ZwaaiWel_Rur_Afsluiten_Dag.JPG',
+            STIM_DIR + '4_Pedestrian_None_Kogel_Niet_Voor_ZwaaiWel_Sted_Afsluiten_Dag.JPG',
+            STIM_DIR + '50_Car_Blue_Lang_Wel_Voor_ZwaaiWel_Rur_Afsluiten_Dag.JPG',
+            STIM_DIR + '51_Car_None_Lang_Niet_Voor_ZwaaiWel_Rur_Afsluiten_Dag.JPG',
+            STIM_DIR + '52_Car_Yellow_Lang_Wel_Voor_ZwaaiWel_Rur_Afsluiten_Nacht.JPG',
+            STIM_DIR + '53_Car_Orange_Lang_Wel_Voor_ZwaaiWel_Rur_Afsluiten_Nacht.JPG',
+            STIM_DIR + '54_Car_Blue_Lang_Wel_Voor_ZwaaiWel_Rur_Afsluiten_Nacht.JPG',
+            STIM_DIR + '55_Car_Yellow_Kogel_Weinig_Voor_ZwaaiWel_Rur_Afsluiten_Dag.JPG',
+            STIM_DIR + '56_Car_Orange_Kogel_Wel_Voor_ZwaaiWel_Rur_Afsluiten_Dag.JPG',
+            STIM_DIR + '57_Car_Blue_Kogel_Niet_Voor_ZwaaiWel_Rur_Afsluiten_Dag.JPG',
+            STIM_DIR + '58_Car_Yellow_Kogel_Weinig_Voor_ZwaaiWel_Rur_Afsluiten_Nacht.JPG',
+            STIM_DIR + '59_Car_Orange_Kogel_Wel_Voor_ZwaaiWel_Rur_Afsluiten_Nacht.JPG',
+            STIM_DIR + '5_Pedestrian_Yellow_Kogel_Weinig_Voor_ZwaaiWel_Sted_Afsluiten_Nacht.JPG',
+            STIM_DIR + '60_Car_Blue_Kogel_Niet_Voor_ZwaaiWel_Rur_Afsluiten_Nacht.JPG',
+            STIM_DIR + '61_Car_Yellow_Lang_Wel_Achter_ZwaaiWel_Rur_Beveiligen_Dag.JPG',
+            STIM_DIR + '62_Car_Orange_Lang_Wel_Achter_ZwaaiWel_Rur_Beveiligen_Dag.JPG',
+            STIM_DIR + '63_Car_Blue_Lang_Wel_Achter_ZwaaiWel_Rur_Beveiligen_Dag.JPG',
+            STIM_DIR + '64_Car_None_Lang_Niet_Achter_ZwaaiWel_Rur_Beveiligen_Dag.JPG',
+            STIM_DIR + '65_Car_Yellow_Lang_Wel_Achter_ZwaaiWel_Rur_Beveiligen_Nacht.JPG',
+            STIM_DIR + '66_Car_Orange_Lang_Wel_Achter_ZwaaiWel_Rur_Beveiligen_Nacht.JPG',
+            STIM_DIR + '67_Car_Blue_Lang_Wel_Achter_ZwaaiWel_Rur_Beveiligen_Nacht.JPG',
+            STIM_DIR + '68_Pedestrian_Yellow_Kogel_Weinig_Achter_ZwaaiWel_Rur_Beveiligen_Dag.JPG',
+            STIM_DIR + '69_Pedestrian_Orange_Kogel_Wel_Achter_ZwaaiWel_Rur_Beveiligen_Dag.JPG',
+            STIM_DIR + '6_Pedestrian_Orange_Kogel_Wel_Voor_ZwaaiWel_Sted_Afsluiten_Nacht.JPG',
+            STIM_DIR + '70_Pedestrian_Blue_Kogel_Niet_Achter_ZwaaiWel_Rur_Beveiligen_Dag.JPG',
+            STIM_DIR + '71_Pedestrian_None_Kogel_Niet_Achter_ZwaaiWel_Rur_Beveiligen_Dag.JPG',
+            STIM_DIR + '72_Pedestrian_Yellow_Kogel_Weinig_Achter_ZwaaiWel_Rur_Beveiligen_Nacht.JPG',
+            STIM_DIR + '73_Pedestrian_Orange_Kogel_Wel_Achter_ZwaaiWel_Rur_Beveiligen_Nacht.JPG',
+            STIM_DIR + '74_Pedestrian_Blue_Kogel_Niet_Achter_ZwaaiWel_Rur_Beveiligen_Nacht.JPG',
+            STIM_DIR + '75_Car_Yellow_Lang_Wel_Voor_ZwaaiWel_Snel_BeperkingRijstrook_Dag.JPG',
+            STIM_DIR + '76_Car_Orange_Lang_Wel_Voor_ZwaaiWel_Snel_BeperkingRijstrook_Dag.JPG',
+            STIM_DIR + '77_Car_Blue_Lang_Wel_Voor_ZwaaiWel_Snel_BeperkingRijstrook_Dag.JPG',
+            STIM_DIR + '78_Car_Yellow_Lang_Wel_Voor_ZwaaiWel_Snel_BeperkingRijstrook_Nacht.JPG',
+            STIM_DIR + '79_Car_Orange_Lang_Wel_Voor_ZwaaiWel_Snel_BeperkingRijstrook_Nacht.JPG',
+            STIM_DIR + '7_Pedestrian_Blue_Kogel_Niet_Voor_ZwaaiWel_Sted_Afsluiten_Nacht.JPG',
+            STIM_DIR + '80_Car_Blue_Lang_Wel_Voor_ZwaaiWel_Snel_BeperkingRijstrook_Nacht.JPG',
+            STIM_DIR + '8_Pedestrian_Yellow_Lang_Wel_Voor_ZwaaiWel_Sted_Afsluiten_Dag.JPG',
+            STIM_DIR + '9_Pedestrian_Orange_Lang_Wel_Voor_ZwaaiWel_Sted_Afsluiten_Dag.JPG'
+        ];
+        shuffleArray(stimuList);
+
+        var preload_prac = {
+            type: jsPsychPreload,
+            images: photo_pracList
+        };
+        var preload_task = {
+            type: jsPsychPreload,
+            images: stimuList
+        };
+
+        // Texts
+        var fbText = 'U hebt niet snel genoeg gedrukt';
+        const welcomeText = INST_DIR + 'online_welkom.png';
+        const goalText = INST_DIR + 'online_goal.png';
+        const pracText = INST_DIR + 'online_kledijprac.png';
+        const pracFeedbackText = INST_DIR + 'online_kledijprac2.png';
+        const taskText = INST_DIR + 'online_kledijtask.png';
+        const taskFeedbackText = INST_DIR + 'online_kledijtask2.png';
+
+
+        // Welcome message
+        const welcome = {
+            type: jsPsychImageKeyboardResponse,
+            stimulus: welcomeText,
+            stimulus_height: window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight,
+            css_classes: ['imgbox'],
+            choices: ' '
+        };
+        timeline.push(welcome);
+
+        // Goal
+        const goal = {
+            type: jsPsychImageKeyboardResponse,
+            stimulus: goalText,
+            stimulus_height: window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight,
+            css_classes: ['imgbox'],
+            choices: ' '
+        };
+        timeline.push(goal);
+
+        // Instructions
+        const pracInstructions = {
+            type: jsPsychImageKeyboardResponse,
+            stimulus: pracText,
+            stimulus_height: window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight,
+            css_classes: ['imgbox'],
+            choices: ' ',
+        };
+        timeline.push(pracInstructions);
+
+        const pracFeedback = {
+            type: jsPsychImageKeyboardResponse,
+            stimulus: pracFeedbackText,
+            stimulus_height: window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight,
+            css_classes: ['imgbox'],
+            choices: ' ',
+            post_trial_gap: 1000
+        };
+        timeline.push(pracFeedback);
+        timeline.push(preload_prac);
+
+
+        // Photo practice
+        ///////////////////////////////////////////////////////////////////////
+        var pracBlock = []
+        for (stimi in photo_pracList){
+            var trial_info = photo_pracList[stimi].split('_');
+            var trial_info = trial_info.map(element => {
+                return element.toLowerCase();
+            }
+            );
+            var trial_info = trial_info.slice(2);
+
+            if (trial_info.includes('none')) {
+                corResp = null;
+            }
+            else {
+                corResp = POL_RESP;
+            }
+            pracBlock.push(
+                {
+                    stimulus: photo_pracList[stimi],
+                    correct_response: corResp
+                }
+            );
+        };
+
+        var pracTrial = {
+            type: jsPsychImageKeyboardResponse,
+            stimulus: jsPsych.timelineVariable('stimulus'),
+            stimulus_height: window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight,
+            css_classes: ['imgbox'],
+            choices: POL_RESP,
+            trial_duration: TRIAL_DUR,
+            response_ends_trial: true,
+            data: {task: 'practice'},
+
+            //// White screen at start of trial
+            on_start: function(data) {
+                stimulus: document.body.style.backgroundColor = '#616267';
+            },
+
+            on_finish: function(data) {
+                data.correct_response = jsPsych.timelineVariable('correct_response');
+                data.correct = jsPsych.pluginAPI.compareKeys(
+                    data.response, data.correct_response
+                    );
+            }
+        };
+
+        var feedback = {
+            type: jsPsychImageKeyboardResponse,
+            choices: 'NO_KEYS',
+            trial_duration: FB_DUR,
+            response_ends_trial: false,
+            //// Conditional feedback
+            stimulus: function(data) {
+                accuracy = jsPsych.data.get().last(1).values()[0].correct;
+                expResp = jsPsych.data.get().last(1).values()[0].correct_response;
+
+                if (accuracy == true) {
+                    return document.body.style.backgroundColor = '#00FF00';
+                }
+                else if (accuracy == false) {
+                    return document.body.style.backgroundColor = '#FF0000';
+                }
+            },
+            prompt: function(data) {
+                if (accuracy == false & expResp == POL_RESP) {
+                    return fbText
+                }
+            },
+        };
+
+        var pracTrial_procedure = {
+            timeline: [pracTrial, feedback],
+            repetitions: 1,
+            randomize_order: false
+        };
+
+        var pracBlock_procedure = {
+            timeline: [pracTrial_procedure],
+            timeline_variables: pracBlock,
+            repetitions: 1,
+            randomize_order: false
+        };
+        timeline.push(pracBlock_procedure);
+
+        // Photo task
+        ///////////////////////////////////////////////////////////////////////
+        //// Instructions
+        const taskInstructions = {
+            type: jsPsychImageKeyboardResponse,
+            stimulus: taskText,
+            stimulus_height: window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight,
+            css_classes: ['imgbox'],
+            choices: ' ',
+            on_start: function(data) {
+                stimulus: document.body.style.backgroundColor = '#616267';
+            },
+        };
+        timeline.push(taskInstructions);
+
+        const taskFeedback = {
+            type: jsPsychImageKeyboardResponse,
+            stimulus: taskFeedbackText,
+            stimulus_height: window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight,
+            css_classes: ['imgbox'],
+            choices: ' ',
+            post_trial_gap: 1000
+        };
+        timeline.push(taskFeedback);
+        timeline.push(preload_task);
+
+
+        var taskBlock = []
+        for (stimi in stimuList){
+            var trial_info = stimuList[stimi].split('_');
+            var trial_info = trial_info.map(element => {
+                return element.toLowerCase();
+            }
+            );
+            var trial_info = trial_info.slice(1);
+            if (trial_info.includes('none')) {
+                corResp = null;
+            }
+            else {
+                corResp = POL_RESP;
+            }
+            taskBlock.push(
+                {
+                    stimulus: stimuList[stimi],
+                    correct_response: corResp
+                }
+            );
+        };
+
+        var taskTrial = {
+            type: jsPsychImageKeyboardResponse,
+            stimulus: jsPsych.timelineVariable('stimulus'),
+            stimulus_height: window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight,
+            css_classes: ['imgbox'],
+            choices: POL_RESP,
+            trial_duration: TRIAL_DUR,
+            response_ends_trial: true,
+            data: {task: 'task'},
+
+            //// White screen at start of trial
+            on_start: function(data) {
+                stimulus: document.body.style.backgroundColor = '#616267';
+            },
+
+            on_finish: function(data) {
+                data.correct_response = jsPsych.timelineVariable('correct_response');
+                data.correct = jsPsych.pluginAPI.compareKeys(
+                    data.response, data.correct_response
+                    );
+                data.actResp = data.response;
+            }
+        };
+
+        var taskTrial_procedure = {
+            timeline: [taskTrial, feedback],
+            repetitions: 1,
+            randomize_order: true
+        };
+
+        var taskBlock_procedure = {
+            timeline: [taskTrial_procedure],
+            timeline_variables: taskBlock,
+            repetitions: 1,
+            randomize_order: false
+        };
+        timeline.push(taskBlock_procedure);
+
+        var everAfter = {
+            type: jsPsychHtmlKeyboardResponse,
+            on_start: function(data) {
+                stimulus: document.body.style.backgroundColor = '#616267';
+            },
+            stimulus: function() {
+                var trials = jsPsych.data.get().filter({task: 'task'});
+                var correct_trials = trials.filter({correct: true});
+                var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+                var rt = Math.round(correct_trials.select('rt').mean());
+
+                return `<p>U heeft ${accuracy}% behaald op deze taak.</p>
+                    <p>Uw gemiddelde reactietijd was ${rt}ms.</p>
+                    <p>Erg bedankt voor Uw deelname!</p>
+                    <p>Druk op SPATIE om het experiment af te sluiten.</p>`;
+                },
+            choices: ' ',
+        };
+        timeline.push(everAfter);
+
+        // Run experiment
+        jsPsych.run(timeline);
+    </script>
+</html>
