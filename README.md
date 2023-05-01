@@ -4,6 +4,27 @@ Expermental tasks to study the visibility of the Battenburg pattern in trafic.
 I removed the stimuli from the repository since they are not my property. I am
 happy to provided more information if needed.
 
+The structur I used for organising the project:
+```
+Battenburg
+├── data
+│   ├── cleaned <- data after clean_data.py
+│   └── raw <- data before clean_data.py
+├── docs
+├── jspsych
+├── scripts
+├── stimuli <- Singularity images
+│   ├── car_prac <- stimul for practice trials in offline photo task
+│   ├── car_task <- stimul for real trials in offline photo task
+│   ├── clothes_prac <- stimul for practice trials in online photo task
+│   ├── clothes_task <- stimul for real trials in online photo task
+│   ├── film_prac <- stimul for practice trials in offline film task
+│   ├── film_task <- stimul for real trials in offline film task
+│   └── instructions_feedback <- images of instructions and feedback
+├── .gitignore
+└── README.md
+```
+
 ## Offline car experiments
 
 A reaction task to measure differences in speed between the Battenburg pattern
