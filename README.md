@@ -22,7 +22,7 @@ Battenburg
 │   ├── film_task <- stimuli for real trials in offline film task
 │   └── instructions_feedback <- images of instructions and feedback
 ├── .gitignore
-├── LICENCE
+├── LICENSE
 └── README.md
 ```
 
