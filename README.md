@@ -13,15 +13,16 @@ Battenburg
 ├── docs
 ├── jspsych
 ├── scripts
-├── stimuli <- Singularity images
-│   ├── car_prac <- stimul for practice trials in offline photo task
-│   ├── car_task <- stimul for real trials in offline photo task
-│   ├── clothes_prac <- stimul for practice trials in online photo task
-│   ├── clothes_task <- stimul for real trials in online photo task
-│   ├── film_prac <- stimul for practice trials in offline film task
-│   ├── film_task <- stimul for real trials in offline film task
+├── stimuli
+│   ├── car_prac <- stimuli for practice trials in offline photo task
+│   ├── car_task <- stimuli for real trials in offline photo task
+│   ├── clothes_prac <- stimuli for practice trials in online photo task
+│   ├── clothes_task <- stimuli for real trials in online photo task
+│   ├── film_prac <- stimuli for practice trials in offline film task
+│   ├── film_task <- stimuli for real trials in offline film task
 │   └── instructions_feedback <- images of instructions and feedback
 ├── .gitignore
+├── LICENCE
 └── README.md
 ```
 
